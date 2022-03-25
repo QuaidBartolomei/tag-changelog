@@ -7157,10 +7157,17 @@ async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
     cAst = toConventionalChangelogFormat(ast);
   } catch (error) {
     // Not a valid commit
-    cAst = {
-      subject: message.split("\n")[0],
-      type: "other",
-    };
+    if (message.split(" ")[0] === "Merge") {
+      cAst = {
+        subject: message.split("\n")[0],
+        type: "merge",
+      };
+    } else {
+      cAst = {
+        subject: message.split("\n")[0],
+        type: "other",
+      };
+    }
   }
 
   const found = cAst.subject.match(PR_REGEX);
