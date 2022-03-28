@@ -1,12 +1,12 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
-const { context, getOctokit } = require("@actions/github");
-const { info, getInput, setOutput, setFailed } = require("@actions/core");
-const compareVersions = require("compare-versions");
+const { context, getOctokit } = require('@actions/github');
+const { info, getInput, setOutput, setFailed } = require('@actions/core');
+const compareVersions = require('compare-versions');
 
-const parseCommitMessage = require("./parseCommitMessage");
-const generateChangelog = require("./generateChangelog");
-const DEFAULT_CONFIG = require("./defaultConfig");
+const parseCommitMessage = require('./parseCommitMessage');
+const generateChangelog = require('./generateChangelog');
+const DEFAULT_CONFIG = require('./defaultConfig');
 
 const {
   repo: { owner, repo },
@@ -17,28 +17,29 @@ function getConfig(path) {
     let workspace = process.env.GITHUB_WORKSPACE;
     if (process.env.ACT) {
       // Otherwise testing this in ACT doesn't work
-      workspace += "/tag-changelog";
+      workspace += '/tag-changelog';
     }
 
     const userConfig = require(`${workspace}/${path}`);
 
     // Merge default config with user config
-    return { ...DEFAULT_CONFIG, ...userConfig};
+    return { ...DEFAULT_CONFIG, ...userConfig };
   }
 
   return DEFAULT_CONFIG;
 }
 
 async function run() {
-  const token = getInput("token", { required: true });
+  const token = getInput('token', { required: true });
   const octokit = getOctokit(token);
 
-  const configFile = getInput("config_file", { required: false });
+  const configFile = getInput('config_file', { required: false });
   const config = getConfig(configFile);
-  const excludeTypesString = getInput("exclude_types", { required: false }) || "";
+  const excludeTypesString =
+    getInput('exclude_types', { required: false }) || '';
 
   if (excludeTypesString) {
-    config.excludeTypes = excludeTypesString.split(",");
+    config.excludeTypes = excludeTypesString.split(',');
   }
 
   // Find the two most recent tags
@@ -49,7 +50,7 @@ async function run() {
   });
 
   const validSortedTags = tags
-    .filter((t) => compareVersions.validate(t.name))
+    .filter(t => compareVersions.validate(t.name))
     .sort((a, b) => compareVersions(a.name, b.name))
     .reverse();
 
@@ -66,7 +67,7 @@ async function run() {
     head: validSortedTags[0].commit.sha,
   });
 
-  const fetchUserFunc = async function (pullNumber) {
+  const fetchUserFunc = async pullNumber => {
     const pr = await octokit.pulls.get({
       owner,
       repo,
@@ -82,28 +83,32 @@ async function run() {
   // Parse every commit, getting the type, turning PR numbers into links, etc
   const commitObjects = await Promise.all(
     result.data.commits
-      .map(async (commit) => {
-        const commitObj = await parseCommitMessage(commit.commit.message, `https://github.com/${owner}/${repo}`, fetchUserFunc);
+      .map(async commit => {
+        const commitObj = await parseCommitMessage(
+          commit.commit.message,
+          `https://github.com/${owner}/${repo}`,
+          fetchUserFunc
+        );
         commitObj.sha = commit.sha;
         commitObj.url = commit.html_url;
         commitObj.author = commit.author;
         return commitObj;
       })
-      .filter((m) => m !== false)
+      .filter(m => m !== false)
   );
 
   // And generate the changelog
   if (commitObjects.length === 0) {
-    setOutput("changelog", "");
-    setOutput("changes", "");
+    setOutput('changelog', '');
+    setOutput('changes', '');
     return;
   }
 
   const log = generateChangelog(validSortedTags[0].name, commitObjects, config);
 
   info(log.changelog);
-  setOutput("changelog", log.changelog);
-  setOutput("changes", log.changes);
+  setOutput('changelog', log.changelog);
+  setOutput('changes', log.changes);
 }
 
 run();
