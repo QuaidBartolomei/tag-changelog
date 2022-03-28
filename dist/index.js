@@ -6897,7 +6897,7 @@ const DEFAULT_CONFIG = {
 
   excludeTypes: [],
 
-  renderTypeSection: function (label, commits) {
+  renderTypeSection (label, commits) {
     let text = `\n## ${label}\n`;
 
     commits.forEach((commit) => {
@@ -6908,7 +6908,7 @@ const DEFAULT_CONFIG = {
     return text;
   },
 
-  renderNotes: function (notes) {
+  renderNotes (notes) {
     let text = `\n## BREAKING CHANGES\n`;
 
     notes.forEach((note) => {
@@ -6919,9 +6919,9 @@ const DEFAULT_CONFIG = {
     return text;
   },
 
-  renderChangelog: function (release, changes) {
+  renderChangelog (release, changes) {
     const now = new Date();
-    return `# ${release} - ${now.toISOString().substr(0, 10)}\n\n` + changes + "\n\n";
+    return `# ${release} - ${now.toISOString().substr(0, 10)}\n\n${  changes  }\n\n`;
   },
 };
 
@@ -6938,33 +6938,28 @@ const translateType = __nccwpck_require__(2820);
 
 function generateChangelog(releaseName, commitObjects, config) {
   const commitsByType = groupByType(commitObjects, config.types);
-  let changes = "";
+  let changes = '';
 
   commitsByType
-    .filter((obj) => {
-      return !config.excludeTypes.includes(obj.type);
-    })
-    .forEach((obj) => {
+    .filter(obj => !config.excludeTypes.includes(obj.type))
+    .forEach(obj => {
       const niceType = translateType(obj.type, config.types);
       changes += config.renderTypeSection(niceType, obj.commits);
     });
 
   // Find all the notes of all the commits of all the types
   const notes = commitsByType
-    .flatMap((obj) => {
-      return obj.commits
-        .map((commit) => {
-          if (commit.notes && commit.notes.length) {
-            return commit.notes.map((note) => {
-              const noteObj = note;
-              noteObj.commit = commit;
-              return noteObj;
-            });
-          }
-        })
-        .filter((o) => o);
-    })
-    .flatMap((o) => o);
+    .flatMap(obj =>
+      obj.commits
+        .filter(commit => commit.notes && commit.notes.length)
+        .map(commit => commit.notes.map(note => {
+            const noteObj = note;
+            noteObj.commit = commit;
+            return noteObj;
+          }))
+        .filter(o => o)
+    )
+    .flatMap(o => o);
 
   if (notes.length) {
     changes += config.renderNotes(notes);
@@ -6975,8 +6970,8 @@ function generateChangelog(releaseName, commitObjects, config) {
   const changelog = config.renderChangelog(releaseName, changes);
 
   return {
-    changelog: changelog,
-    changes: changes,
+    changelog,
+    changes,
   };
 }
 
@@ -7029,6 +7024,8 @@ module.exports = groupByType;
 /***/ 4351:
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __nccwpck_require__) => {
 
+/* eslint-disable import/no-dynamic-require */
+/* eslint-disable global-require */
 const { context, getOctokit } = __nccwpck_require__(5438);
 const { info, getInput, setOutput, setFailed } = __nccwpck_require__(2186);
 const compareVersions = __nccwpck_require__(9296);
@@ -7046,28 +7043,29 @@ function getConfig(path) {
     let workspace = process.env.GITHUB_WORKSPACE;
     if (process.env.ACT) {
       // Otherwise testing this in ACT doesn't work
-      workspace += "/tag-changelog";
+      workspace += '/tag-changelog';
     }
 
     const userConfig = require(`${workspace}/${path}`);
 
     // Merge default config with user config
-    return Object.assign({}, DEFAULT_CONFIG, userConfig);
+    return { ...DEFAULT_CONFIG, ...userConfig };
   }
 
   return DEFAULT_CONFIG;
 }
 
 async function run() {
-  const token = getInput("token", { required: true });
+  const token = getInput('token', { required: true });
   const octokit = getOctokit(token);
 
-  const configFile = getInput("config_file", { required: false });
+  const configFile = getInput('config_file', { required: false });
   const config = getConfig(configFile);
-  const excludeTypesString = getInput("exclude_types", { required: false }) || "";
+  const excludeTypesString =
+    getInput('exclude_types', { required: false }) || '';
 
   if (excludeTypesString) {
-    config.excludeTypes = excludeTypesString.split(",");
+    config.excludeTypes = excludeTypesString.split(',');
   }
 
   // Find the two most recent tags
@@ -7078,10 +7076,8 @@ async function run() {
   });
 
   const validSortedTags = tags
-    .filter((t) => compareVersions.validate(t.name))
-    .sort((a, b) => {
-      return compareVersions(a.name, b.name);
-    })
+    .filter(t => compareVersions.validate(t.name))
+    .sort((a, b) => compareVersions(a.name, b.name))
     .reverse();
 
   if (validSortedTags.length < 2) {
@@ -7097,7 +7093,7 @@ async function run() {
     head: validSortedTags[0].commit.sha,
   });
 
-  const fetchUserFunc = async function (pullNumber) {
+  const fetchUserFunc = async pullNumber => {
     const pr = await octokit.pulls.get({
       owner,
       repo,
@@ -7113,28 +7109,32 @@ async function run() {
   // Parse every commit, getting the type, turning PR numbers into links, etc
   const commitObjects = await Promise.all(
     result.data.commits
-      .map(async (commit) => {
-        const commitObj = await parseCommitMessage(commit.commit.message, `https://github.com/${owner}/${repo}`, fetchUserFunc);
+      .map(async commit => {
+        const commitObj = await parseCommitMessage(
+          commit.commit.message,
+          `https://github.com/${owner}/${repo}`,
+          fetchUserFunc
+        );
         commitObj.sha = commit.sha;
         commitObj.url = commit.html_url;
         commitObj.author = commit.author;
         return commitObj;
       })
-      .filter((m) => m !== false)
+      .filter(m => m !== false)
   );
 
   // And generate the changelog
   if (commitObjects.length === 0) {
-    setOutput("changelog", "");
-    setOutput("changes", "");
+    setOutput('changelog', '');
+    setOutput('changes', '');
     return;
   }
 
   const log = generateChangelog(validSortedTags[0].name, commitObjects, config);
 
   info(log.changelog);
-  setOutput("changelog", log.changelog);
-  setOutput("changes", log.changes);
+  setOutput('changelog', log.changelog);
+  setOutput('changes', log.changes);
 }
 
 run();
@@ -7145,27 +7145,53 @@ run();
 /***/ 5646:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const { parser, toConventionalChangelogFormat } = __nccwpck_require__(4523);
+const {
+  parser,
+  toConventionalChangelogFormat,
+} = __nccwpck_require__(4523);
 
 const PR_REGEX = /#([1-9]\d*)/;
+
+function removeFirstWord(str) {
+  const indexOfSpace = str.indexOf(' ');
+  if (indexOfSpace === -1) return '';
+  return str.substring(indexOfSpace + 1);
+}
+
+function firstWordToLowerCase(str) {
+  const arr = str.split(' ');
+  if (!arr.length) return str;
+  const firstWord = arr[0];
+  arr[0] = firstWord.toLowerCase();
+  return arr.join(' ');
+}
 
 async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
   let cAst;
 
   try {
-    const ast = parser(message);
+    const ast = parser(firstWordToLowerCase(message));
     cAst = toConventionalChangelogFormat(ast);
   } catch (error) {
     // Not a valid commit
-    if (message.split(" ")[0] === "Merge") {
+    const firstWord = message.split(' ')[0];
+
+    if (firstWord === 'Merge') {
       cAst = {
-        subject: message.split("\n")[0],
-        type: "merge",
+        subject: message.split('\n')[0],
+        type: 'merge',
+      };
+    } else if (
+      ['fix', 'hotfix'].find(x => (firstWord.toLowerCase().startsWith(x)))
+    ) {
+      cAst = {
+        subject: removeFirstWord(message.split('\n')[0]),
+        type: 'fix',
       };
     } else {
       cAst = {
-        subject: message.split("\n")[0],
-        type: "other",
+        subject: message.split('\n')[0],
+        type: 'other',
       };
     }
   }
@@ -7176,7 +7202,11 @@ async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
 
     try {
       const { username, userUrl } = await fetchUserFunc(pullNumber);
-      cAst.subject = cAst.subject.replace(PR_REGEX, () => `[#${pullNumber}](${repoUrl}/pull/${pullNumber}) by [${username}](${userUrl})`);
+      cAst.subject = cAst.subject.replace(
+        PR_REGEX,
+        () =>
+          `[#${pullNumber}](${repoUrl}/pull/${pullNumber}) by [${username}](${userUrl})`
+      );
     } catch (error) {
       // We found a #123 style hash, but it wasn't a valid PR. Ignore.
     }
