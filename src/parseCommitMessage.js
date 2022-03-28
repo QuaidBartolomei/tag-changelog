@@ -5,18 +5,41 @@ const {
 
 const PR_REGEX = /#([1-9]\d*)/;
 
+function removeFirstWord(str) {
+  const indexOfSpace = str.indexOf(' ');
+  if (indexOfSpace === -1) return '';
+  return str.substring(indexOfSpace + 1);
+}
+
+function firstWordToLowerCase(str) {
+  const arr = str.split(' ');
+  if (!arr.length) return str;
+  const firstWord = arr[0];
+  arr[0] = firstWord.toLowerCase();
+  return arr.join(' ');
+}
+
 async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
   let cAst;
 
   try {
-    const ast = parser(message);
+    const ast = parser(firstWordToLowerCase(message));
     cAst = toConventionalChangelogFormat(ast);
   } catch (error) {
     // Not a valid commit
-    if (message.split(' ')[0] === 'Merge') {
+    const firstWord = message.split(' ')[0];
+
+    if (firstWord === 'Merge') {
       cAst = {
         subject: message.split('\n')[0],
         type: 'merge',
+      };
+    } else if (
+      ['fix', 'hotfix'].find(x => (firstWord.toLowerCase().startsWith(x)))
+    ) {
+      cAst = {
+        subject: removeFirstWord(message.split('\n')[0]),
+        type: 'fix',
       };
     } else {
       cAst = {
