@@ -1,0 +1,19 @@
+name: Tag release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: '0'
+      - uses: rymndhng/release-on-push-action@master
+        with:
+          bump_version_scheme: patch
