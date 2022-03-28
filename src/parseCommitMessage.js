@@ -19,6 +19,13 @@ function firstWordToLowerCase(str) {
   return arr.join(' ');
 }
 
+function fixMalformedScope(str) {
+  const arr = str.split(' ');
+  if (arr.length < 3) return str;
+  const firstTwo = arr.splice(0, 2);
+  return [firstTwo.join(''), ...arr].join(' ');
+}
+
 async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
   let cAst;
 
@@ -26,26 +33,31 @@ async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
     const ast = parser(firstWordToLowerCase(message));
     cAst = toConventionalChangelogFormat(ast);
   } catch (error) {
-    // Not a valid commit
-    const firstWord = message.split(' ')[0];
+    try {
+      const ast = parser(fixMalformedScope(message));
+      cAst = toConventionalChangelogFormat(ast);
+    } catch (error2) {
+      // Not a valid commit
+      const firstWord = message.split(' ')[0];
 
-    if (firstWord === 'Merge') {
-      cAst = {
-        subject: message.split('\n')[0],
-        type: 'merge',
-      };
-    } else if (
-      ['fix', 'hotfix'].find(x => (firstWord.toLowerCase().startsWith(x)))
-    ) {
-      cAst = {
-        subject: removeFirstWord(message.split('\n')[0]),
-        type: 'fix',
-      };
-    } else {
-      cAst = {
-        subject: message.split('\n')[0],
-        type: 'other',
-      };
+      if (firstWord === 'Merge') {
+        cAst = {
+          subject: message.split('\n')[0],
+          type: 'merge',
+        };
+      } else if (
+        ['fix', 'hotfix'].find(x => firstWord.toLowerCase().startsWith(x))
+      ) {
+        cAst = {
+          subject: removeFirstWord(message.split('\n')[0]),
+          type: 'fix',
+        };
+      } else {
+        cAst = {
+          subject: message.split('\n')[0],
+          type: 'chore',
+        };
+      }
     }
   }
 
