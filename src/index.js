@@ -1,3 +1,5 @@
+/* eslint-disable import/no-dynamic-require */
+/* eslint-disable global-require */
 const { context, getOctokit } = require("@actions/github");
 const { info, getInput, setOutput, setFailed } = require("@actions/core");
 const compareVersions = require("compare-versions");
@@ -21,7 +23,7 @@ function getConfig(path) {
     const userConfig = require(`${workspace}/${path}`);
 
     // Merge default config with user config
-    return Object.assign({}, DEFAULT_CONFIG, userConfig);
+    return { ...DEFAULT_CONFIG, ...userConfig};
   }
 
   return DEFAULT_CONFIG;
@@ -48,9 +50,7 @@ async function run() {
 
   const validSortedTags = tags
     .filter((t) => compareVersions.validate(t.name))
-    .sort((a, b) => {
-      return compareVersions(a.name, b.name);
-    })
+    .sort((a, b) => compareVersions(a.name, b.name))
     .reverse();
 
   if (validSortedTags.length < 2) {

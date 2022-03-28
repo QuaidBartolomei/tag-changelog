@@ -3,6 +3,7 @@
 const assert = require("assert");
 const parseCommitMessage = require("../src/parseCommitMessage");
 
+// eslint-disable-next-line no-unused-vars
 const fetchUserFunc = async function (pullNumber) {
   return {
     username: "kevinrenskers",
@@ -34,7 +35,12 @@ describe("parseCommitMessage", () => {
 
   it("should parse a basic fix", async () => {
     const result = await parseCommitMessage("fix: This is a fix");
+    assert.strictEqual(result.subject, "This is a fix");
+    assert.strictEqual(result.type, "fix");
+  });
 
+  it("should parse a basic fix (case insensitive)", async () => {
+    const result = await parseCommitMessage("Fix: This is a fix");
     assert.strictEqual(result.subject, "This is a fix");
     assert.strictEqual(result.type, "fix");
   });

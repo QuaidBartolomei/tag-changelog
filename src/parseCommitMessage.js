@@ -1,4 +1,7 @@
-const { parser, toConventionalChangelogFormat } = require("@conventional-commits/parser");
+const {
+  parser,
+  toConventionalChangelogFormat,
+} = require('@conventional-commits/parser');
 
 const PR_REGEX = /#([1-9]\d*)/;
 
@@ -10,15 +13,15 @@ async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
     cAst = toConventionalChangelogFormat(ast);
   } catch (error) {
     // Not a valid commit
-    if (message.split(" ")[0] === "Merge") {
+    if (message.split(' ')[0] === 'Merge') {
       cAst = {
-        subject: message.split("\n")[0],
-        type: "merge",
+        subject: message.split('\n')[0],
+        type: 'merge',
       };
     } else {
       cAst = {
-        subject: message.split("\n")[0],
-        type: "other",
+        subject: message.split('\n')[0],
+        type: 'other',
       };
     }
   }
@@ -29,7 +32,11 @@ async function parseCommitMessage(message, repoUrl, fetchUserFunc) {
 
     try {
       const { username, userUrl } = await fetchUserFunc(pullNumber);
-      cAst.subject = cAst.subject.replace(PR_REGEX, () => `[#${pullNumber}](${repoUrl}/pull/${pullNumber}) by [${username}](${userUrl})`);
+      cAst.subject = cAst.subject.replace(
+        PR_REGEX,
+        () =>
+          `[#${pullNumber}](${repoUrl}/pull/${pullNumber}) by [${username}](${userUrl})`
+      );
     } catch (error) {
       // We found a #123 style hash, but it wasn't a valid PR. Ignore.
     }

@@ -15,7 +15,7 @@ const DEFAULT_CONFIG = {
 
   excludeTypes: [],
 
-  renderTypeSection: function (label, commits) {
+  renderTypeSection (label, commits) {
     let text = `\n## ${label}\n`;
 
     commits.forEach((commit) => {
@@ -26,7 +26,7 @@ const DEFAULT_CONFIG = {
     return text;
   },
 
-  renderNotes: function (notes) {
+  renderNotes (notes) {
     let text = `\n## BREAKING CHANGES\n`;
 
     notes.forEach((note) => {
@@ -37,9 +37,9 @@ const DEFAULT_CONFIG = {
     return text;
   },
 
-  renderChangelog: function (release, changes) {
+  renderChangelog (release, changes) {
     const now = new Date();
-    return `# ${release} - ${now.toISOString().substr(0, 10)}\n\n` + changes + "\n\n";
+    return `# ${release} - ${now.toISOString().substr(0, 10)}\n\n${  changes  }\n\n`;
   },
 };
 
