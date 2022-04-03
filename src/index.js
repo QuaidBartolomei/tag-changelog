@@ -1,7 +1,7 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
 const { context, getOctokit } = require('@actions/github')
-const { info, getInput, setOutput, setFailed } = require('@actions/core')
+const { info, getInput, setOutput, setFailed, debug } = require('@actions/core')
 const compareVersions = require('compare-versions')
 
 const parseCommitMessage = require('./parseCommitMessage')
@@ -30,7 +30,7 @@ function getConfig(path) {
 }
 
 async function run() {
-  console.log('hello world')
+  debug('hello world')
   const token = getInput('token', { required: true })
   const octokit = getOctokit(token)
 
@@ -50,7 +50,7 @@ async function run() {
     per_page: 10,
   })
 
-  console.log('tags :>> ', tags)
+  debug('tags :>> ', tags)
 
   const validSortedTags = tags
     .filter((t) => compareVersions.validate(t.name))
