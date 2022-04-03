@@ -30,6 +30,7 @@ function getConfig(path) {
 }
 
 async function run() {
+  console.log('hello world')
   const token = getInput('token', { required: true })
   const octokit = getOctokit(token)
 
@@ -48,6 +49,8 @@ async function run() {
     repo,
     per_page: 10,
   })
+
+  console.log('tags :>> ', tags)
 
   const validSortedTags = tags
     .filter((t) => compareVersions.validate(t.name))
