@@ -1,45 +1,45 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
-const { context, getOctokit } = require('@actions/github');
-const { info, getInput, setOutput, setFailed } = require('@actions/core');
-const compareVersions = require('compare-versions');
+const { context, getOctokit } = require('@actions/github')
+const { info, getInput, setOutput, setFailed } = require('@actions/core')
+const compareVersions = require('compare-versions')
 
-const parseCommitMessage = require('./parseCommitMessage');
-const generateChangelog = require('./generateChangelog');
-const DEFAULT_CONFIG = require('./defaultConfig');
+const parseCommitMessage = require('./parseCommitMessage')
+const generateChangelog = require('./generateChangelog')
+const DEFAULT_CONFIG = require('./defaultConfig')
 
 const {
   repo: { owner, repo },
-} = context;
+} = context
 
 function getConfig(path) {
   if (path) {
-    let workspace = process.env.GITHUB_WORKSPACE;
+    let workspace = process.env.GITHUB_WORKSPACE
     if (process.env.ACT) {
       // Otherwise testing this in ACT doesn't work
-      workspace += '/tag-changelog';
+      workspace += '/tag-changelog'
     }
 
-    const userConfig = require(`${workspace}/${path}`);
+    const userConfig = require(`${workspace}/${path}`)
 
     // Merge default config with user config
-    return { ...DEFAULT_CONFIG, ...userConfig };
+    return { ...DEFAULT_CONFIG, ...userConfig }
   }
 
-  return DEFAULT_CONFIG;
+  return DEFAULT_CONFIG
 }
 
 async function run() {
-  const token = getInput('token', { required: true });
-  const octokit = getOctokit(token);
+  const token = getInput('token', { required: true })
+  const octokit = getOctokit(token)
 
-  const configFile = getInput('config_file', { required: false });
-  const config = getConfig(configFile);
+  const configFile = getInput('config_file', { required: false })
+  const config = getConfig(configFile)
   const excludeTypesString =
-    getInput('exclude_types', { required: false }) || '';
+    getInput('exclude_types', { required: false }) || ''
 
   if (excludeTypesString) {
-    config.excludeTypes = excludeTypesString.split(',');
+    config.excludeTypes = excludeTypesString.split(',')
   }
 
   // Find the two most recent tags
@@ -47,16 +47,16 @@ async function run() {
     owner,
     repo,
     per_page: 10,
-  });
+  })
 
   const validSortedTags = tags
-    .filter(t => compareVersions.validate(t.name))
+    .filter((t) => compareVersions.validate(t.name))
     .sort((a, b) => compareVersions(a.name, b.name))
-    .reverse();
+    .reverse()
 
   if (validSortedTags.length < 2) {
-    setFailed("Couldn't find previous tag");
-    return;
+    setFailed("Couldn't find previous tag")
+    return
   }
 
   // Find the commits between two tags
@@ -65,50 +65,50 @@ async function run() {
     repo,
     base: validSortedTags[1].commit.sha,
     head: validSortedTags[0].commit.sha,
-  });
+  })
 
-  const fetchUserFunc = async pullNumber => {
+  const fetchUserFunc = async (pullNumber) => {
     const pr = await octokit.pulls.get({
       owner,
       repo,
       pull_number: pullNumber,
-    });
+    })
 
     return {
       username: pr.data.user.login,
       userUrl: pr.data.user.html_url,
-    };
-  };
+    }
+  }
 
   // Parse every commit, getting the type, turning PR numbers into links, etc
   const commitObjects = await Promise.all(
     result.data.commits
-      .map(async commit => {
+      .map(async (commit) => {
         const commitObj = await parseCommitMessage(
           commit.commit.message,
           `https://github.com/${owner}/${repo}`,
           fetchUserFunc
-        );
-        commitObj.sha = commit.sha;
-        commitObj.url = commit.html_url;
-        commitObj.author = commit.author;
-        return commitObj;
+        )
+        commitObj.sha = commit.sha
+        commitObj.url = commit.html_url
+        commitObj.author = commit.author
+        return commitObj
       })
-      .filter(m => m !== false)
-  );
+      .filter((m) => m !== false)
+  )
 
   // And generate the changelog
   if (commitObjects.length === 0) {
-    setOutput('changelog', '');
-    setOutput('changes', '');
-    return;
+    setOutput('changelog', '')
+    setOutput('changes', '')
+    return
   }
 
-  const log = generateChangelog(validSortedTags[0].name, commitObjects, config);
+  const log = generateChangelog(validSortedTags[0].name, commitObjects, config)
 
-  info(log.changelog);
-  setOutput('changelog', log.changelog);
-  setOutput('changes', log.changes);
+  info(log.changelog)
+  setOutput('changelog', log.changelog)
+  setOutput('changes', log.changes)
 }
 
-run();
+run()
