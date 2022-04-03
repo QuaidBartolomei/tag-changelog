@@ -7031,7 +7031,7 @@ module.exports = groupByType
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
 const { context, getOctokit } = __nccwpck_require__(5438)
-const { info, getInput, setOutput, setFailed } = __nccwpck_require__(2186)
+const { info, getInput, setOutput, setFailed, debug } = __nccwpck_require__(2186)
 const compareVersions = __nccwpck_require__(9296)
 
 const parseCommitMessage = __nccwpck_require__(5646)
@@ -7060,6 +7060,7 @@ function getConfig(path) {
 }
 
 async function run() {
+  debug('hello world')
   const token = getInput('token', { required: true })
   const octokit = getOctokit(token)
 
@@ -7078,6 +7079,8 @@ async function run() {
     repo,
     per_page: 10,
   })
+
+  debug('tags :>> ', tags)
 
   const validSortedTags = tags
     .filter((t) => compareVersions.validate(t.name))
