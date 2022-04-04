@@ -6,7 +6,7 @@
   "scripts": {
     "package": "npm run lint && ncc build src/index.js -o dist",
     "act": "npm run package && act",
-    "lint": "eslint src --fix",
+    "lint": "eslint src --fix --cache",
     "test": "mocha 'test/*.spec.js'"
   },
   "author": "Loopwerk",

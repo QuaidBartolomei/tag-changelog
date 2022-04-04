@@ -7060,10 +7060,13 @@ function getConfig(path) {
 }
 
 async function run() {
-  debug('hello world')
+  debug('getting token')
   const token = getInput('token', { required: true })
+
+  debug('creating octokit')
   const octokit = getOctokit(token)
 
+  debug('preparing config')
   const configFile = getInput('config_file', { required: false })
   const config = getConfig(configFile)
   const excludeTypesString =
@@ -7074,13 +7077,12 @@ async function run() {
   }
 
   // Find the two most recent tags
+  debug('getting tags')
   const { data: tags } = await octokit.repos.listTags({
     owner,
     repo,
     per_page: 10,
   })
-
-  debug('tags :>> ', tags)
 
   const validSortedTags = tags
     .filter((t) => compareVersions.validate(t.name))
@@ -7092,6 +7094,9 @@ async function run() {
     return
   }
 
+  debug(`tag 1: ${validSortedTags[1].name}`)
+  debug(`tag 2: ${validSortedTags[0].name}`)
+
   // Find the commits between two tags
   const result = await octokit.repos.compareCommits({
     owner,
@@ -7099,6 +7104,11 @@ async function run() {
     base: validSortedTags[1].commit.sha,
     head: validSortedTags[0].commit.sha,
   })
+
+  // DEBUG log commits
+  result.data.commits.forEach((c, i) =>
+    debug(`commit #${i}: ${c.commit.message}`)
+  )
 
   const fetchUserFunc = async (pullNumber) => {
     const pr = await octokit.pulls.get({
@@ -7130,6 +7140,10 @@ async function run() {
       .filter((m) => m !== false)
   )
 
+  commitObjects.forEach((c, i) =>
+    debug(`parsed commit #${i}>> ${c.type}: ${c.subject}`)
+  )
+
   // And generate the changelog
   if (commitObjects.length === 0) {
     setOutput('changelog', '')
@@ -7138,6 +7152,8 @@ async function run() {
   }
 
   const log = generateChangelog(validSortedTags[0].name, commitObjects, config)
+
+  debug(`changes: ${log.changes}`)
 
   info(log.changelog)
   setOutput('changelog', log.changelog)

@@ -1,4 +1,4 @@
-name: Tag release
+name: Create Release
 
 on:
   push:
@@ -6,14 +6,40 @@ on:
       - main
 
 jobs:
-  release:
+  create-changelog:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - uses: actions/checkout@main
+      - name: Checkout locally
+        uses: actions/checkout@v2
+        if: ${{ env.ACT }}
         with:
-          fetch-depth: '0'
-      - uses: rymndhng/release-on-push-action@master
+          path: ./
+      - name: Checkout GitHub
+        uses: actions/checkout@v2
+        if: ${{ !env.ACT }}
+
+      - name: Bump version and push tag
+        id: bump_tag
+        uses: anothrNick/github-tag-action@1.36.0
+        if: ${{ !env.ACT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          DEFAULT_BUMP: patch
+
+      - name: Create changelog
+        id: changelog
+        uses: ./
         with:
-          bump_version_scheme: patch
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release
+        uses: actions/create-release@latest
+        if: ${{ !env.ACT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{steps.bump_tag.outputs.new_tag}}
+          release_name: ${{ github.event.repository.name }} ${{steps.bump_tag.outputs.new_tag}}
+          body: ${{ steps.changelog.outputs.changes }}
