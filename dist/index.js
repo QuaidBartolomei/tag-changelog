@@ -7060,10 +7060,13 @@ function getConfig(path) {
 }
 
 async function run() {
-  debug('hello world')
+  debug('getting token')
   const token = getInput('token', { required: true })
+
+  debug('creating octokit')
   const octokit = getOctokit(token)
 
+  debug('preparing config')
   const configFile = getInput('config_file', { required: false })
   const config = getConfig(configFile)
   const excludeTypesString =
@@ -7074,6 +7077,7 @@ async function run() {
   }
 
   // Find the two most recent tags
+  debug('getting tags')
   const { data: tags } = await octokit.repos.listTags({
     owner,
     repo,
