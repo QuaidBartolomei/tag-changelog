@@ -1,8 +1,7 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
 const { context, getOctokit } = require('@actions/github')
-const { info, getInput, setOutput, setFailed, debug } = require('@actions/core')
-const compareVersions = require('compare-versions')
+const { info, getInput, setOutput, debug } = require('@actions/core')
 
 const parseCommitMessage = require('./parseCommitMessage')
 const generateChangelog = require('./generateChangelog')
@@ -54,25 +53,15 @@ async function run() {
     per_page: 10,
   })
 
-  const validSortedTags = tags
-    .filter((t) => compareVersions.validate(t.name))
-    .sort((a, b) => compareVersions(a.name, b.name))
-    .reverse()
-
-  if (validSortedTags.length < 2) {
-    setFailed("Couldn't find previous tag")
-    return
-  }
-
-  debug(`tag 1: ${validSortedTags[1].name}`)
-  debug(`tag 2: ${validSortedTags[0].name}`)
+  debug(`tag 1: ${tags[1].name}`)
+  debug(`tag 2: ${tags[0].name}`)
 
   // Find the commits between two tags
   const result = await octokit.repos.compareCommits({
     owner,
     repo,
-    base: validSortedTags[1].commit.sha,
-    head: validSortedTags[0].commit.sha,
+    base: tags[1].commit.sha,
+    head: tags[0].commit.sha,
   })
 
   // DEBUG log commits
@@ -121,7 +110,7 @@ async function run() {
     return
   }
 
-  const log = generateChangelog(validSortedTags[0].name, commitObjects, config)
+  const log = generateChangelog(tags[0].name, commitObjects, config)
 
   debug(`changes: ${log.changes}`)
 
