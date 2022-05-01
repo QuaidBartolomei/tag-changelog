@@ -13,6 +13,7 @@ describe('generateChangelog', () => {
       { subject: 'Subject 4', type: 'fix', notes: [] },
       { subject: 'Subject 5', type: 'feat', notes: [] },
       { subject: 'Subject 6', type: 'other', notes: [] },
+      { subject: 'Subject 7', type: 'feature', notes: [] },
     ]
 
     const dateString = new Date().toISOString().substr(0, 10)
@@ -21,6 +22,7 @@ describe('generateChangelog', () => {
 - Subject 2
 - Subject 3
 - Subject 5
+- Subject 7
 
 ## Bugfixes
 - Subject 1
@@ -32,6 +34,7 @@ describe('generateChangelog', () => {
 - Subject 2
 - Subject 3
 - Subject 5
+- Subject 7
 
 ## Bugfixes
 - Subject 1

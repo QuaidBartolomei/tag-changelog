@@ -6824,9 +6824,16 @@ function generateChangelog(releaseName, commitObjects, config) {
 
   commitsByType
     .filter((obj) => !config.excludeTypes.includes(obj.type))
+    .map((obj) => ({ ...obj, type: translateType(obj.type, config.types) }))
+    .reduce((acc, obj) => {
+      const {type,commits} = obj
+      const accValue = acc.find((x) => x.type === type)
+      if (!accValue) acc.push({ ...obj })
+      else accValue.commits = [...accValue.commits, ...commits]
+      return acc
+    }, [])
     .forEach((obj) => {
-      const niceType = translateType(obj.type, config.types)
-      changes += config.renderTypeSection(niceType, obj.commits)
+      changes += config.renderTypeSection(obj.type, obj.commits)
     })
 
   // Find all the notes of all the commits of all the types
